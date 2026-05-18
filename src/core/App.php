@@ -2,36 +2,34 @@
 
 class App {
 
-    private $controller = 'HomeController';
-    private $method = 'index';
-    private $params = [];
-
     public function __construct() {
         $url = $this->parseUrl();
 
-        if (!empty($url[0])) {
-            $controllerName = ucfirst($url[0]) . 'Controller';
-            $controllerFile = ROOT . 'controllers/' . $controllerName . '.php';
+        $controller = !empty($url[0]) ? ucfirst(strtolower($url[0])) . 'Controller' : 'HomeController';
+        $controllerFile = ROOT . 'controllers/' . $controller . '.php';
 
-            if (file_exists($controllerFile)) {
-                $this->controller = $controllerName;
-                unset($url[0]);
-            }
+        if (file_exists($controllerFile)) {
+            unset($url[0]);
+        } else {
+            $this->show404();
+            exit;
         }
 
-        require_once ROOT . 'controllers/' . $this->controller . '.php';
-        $this->controller = new $this->controller();
+        require_once $controllerFile;
+        $controller = new $controller();
 
-        if (!empty($url[1])) {
-            if (method_exists($this->controller, $url[1])) {
-                $this->method = $url[1];
-                unset($url[1]);
-            }
+        $method = !empty($url[1]) ? $url[1] : 'index';
+
+        if (method_exists($controller, $method)) {
+            unset($url[1]);
+        } else {
+            $this->show404();
+            exit;
         }
 
-        $this->params = !empty($url) ? array_values($url) : [];
+        $params = !empty($url) ? array_values($url) : [];
 
-        call_user_func_array([$this->controller, $this->method], $this->params);
+        call_user_func_array([$controller, $method], $params);
     }
 
     private function parseUrl() {
@@ -39,6 +37,11 @@ class App {
             return explode('/', filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL));
         }
         return [];
+    }
+
+    private function show404() {
+        http_response_code(404);
+        require_once ROOT . 'views/404.php';
     }
 }
 
