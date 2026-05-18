@@ -3,10 +3,21 @@
 class App {
 
     public function __construct() {
+        if (session_status() == PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $url = $this->parseUrl();
 
         $controller = !empty($url[0]) ? ucfirst(strtolower($url[0])) . 'Controller' : 'HomeController';
         $controllerFile = ROOT . 'controllers/' . $controller . '.php';
+
+        require_once ROOT . 'utils/Config.php';
+        Config::load();
+        if (!Config::isInstalled() && $controller !== 'SetupController') {
+            header('Location: /setup');
+            exit;
+        }
 
         if (file_exists($controllerFile)) {
             unset($url[0]);
